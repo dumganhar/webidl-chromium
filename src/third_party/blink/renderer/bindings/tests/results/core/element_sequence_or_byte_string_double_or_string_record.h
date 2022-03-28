@@ -22,7 +22,6 @@
 namespace blink {
 
 class DoubleOrString;
-class Element;
 
 class CORE_EXPORT ElementSequenceOrByteStringDoubleOrStringRecord final {
   DISALLOW_NEW();
@@ -36,9 +35,9 @@ class CORE_EXPORT ElementSequenceOrByteStringDoubleOrStringRecord final {
   static ElementSequenceOrByteStringDoubleOrStringRecord FromByteStringDoubleOrStringRecord(const HeapVector<std::pair<String, DoubleOrString>>&);
 
   bool IsElementSequence() const { return type_ == SpecificType::kElementSequence; }
-  const HeapVector<Member<Element>>& GetAsElementSequence() const;
-  void SetElementSequence(const HeapVector<Member<Element>>&);
-  static ElementSequenceOrByteStringDoubleOrStringRecord FromElementSequence(const HeapVector<Member<Element>>&);
+  const Vector<Member<Element>>& GetAsElementSequence() const;
+  void SetElementSequence(const Vector<Member<Element>>&);
+  static ElementSequenceOrByteStringDoubleOrStringRecord FromElementSequence(const Vector<Member<Element>>&);
 
   ElementSequenceOrByteStringDoubleOrStringRecord(const ElementSequenceOrByteStringDoubleOrStringRecord&);
   ~ElementSequenceOrByteStringDoubleOrStringRecord();
@@ -54,7 +53,7 @@ class CORE_EXPORT ElementSequenceOrByteStringDoubleOrStringRecord final {
   SpecificType type_;
 
   HeapVector<std::pair<String, DoubleOrString>> byte_string_double_or_string_record_;
-  HeapVector<Member<Element>> element_sequence_;
+  Vector<Member<Element>> element_sequence_;
 
   friend CORE_EXPORT v8::Local<v8::Value> ToV8(const ElementSequenceOrByteStringDoubleOrStringRecord&, v8::Local<v8::Object>, v8::Isolate*);
 };

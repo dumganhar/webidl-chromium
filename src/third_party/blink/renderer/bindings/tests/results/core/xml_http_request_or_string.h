@@ -21,8 +21,6 @@
 
 namespace blink {
 
-class XMLHttpRequest;
-
 class CORE_EXPORT XMLHttpRequestOrString final {
   DISALLOW_NEW();
  public:

@@ -22,30 +22,14 @@
 #include "third_party/blink/renderer/bindings/core/v8/serialization/serialized_script_value_factory.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_array_buffer.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_array_buffer_view.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_attr.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_document.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_document_fragment.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_document_type.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_dom_configuration.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_element.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_event_target.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_float32_array.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_html_collection.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_html_element.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_int32_array.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_iterator.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_node.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_node_filter.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_shadow_root.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_callback_interface.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_dictionary.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_interface.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_interface_empty.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_node.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_object.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_uint8_array.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_window.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_xpath_ns_resolver.h"
 #include "third_party/blink/renderer/core/dom/class_collection.h"
 #include "third_party/blink/renderer/core/dom/tag_collection.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
@@ -292,7 +276,7 @@ static void DOMTimeStampAttributeAttributeGetter(const v8::FunctionCallbackInfo<
 
   TestObject* impl = V8TestObject::ToImpl(holder);
 
-  V8SetReturnValue(info, static_cast<double>(impl->domTimeStampAttribute()));
+  V8SetReturnValueFast(info, WTF::GetPtr(impl->domTimeStampAttribute()), impl);
 }
 
 static void DOMTimeStampAttributeAttributeSetter(
@@ -308,9 +292,13 @@ static void DOMTimeStampAttributeAttributeSetter(
   ExceptionState exception_state(isolate, ExceptionState::kSetterContext, "TestObject", "domTimeStampAttribute");
 
   // Prepare the value to be set.
-  uint64_t cpp_value = NativeValueTraits<IDLUnsignedLongLong>::NativeValue(info.GetIsolate(), v8_value, exception_state);
-  if (exception_state.HadException())
+  DOMTimeStamp* cpp_value = V8DOMTimeStamp::ToImplWithTypeCheck(info.GetIsolate(), v8_value);
+
+  // Type check per: http://heycam.github.io/webidl/#es-interface
+  if (!cpp_value) {
+    exception_state.ThrowTypeError("The provided value is not of type 'DOMTimeStamp'.");
     return;
+  }
 
   impl->setDomTimeStampAttribute(cpp_value);
 }
@@ -974,7 +962,7 @@ static void WindowAttributeAttributeSetter(
   ExceptionState exception_state(isolate, ExceptionState::kSetterContext, "TestObject", "windowAttribute");
 
   // Prepare the value to be set.
-  DOMWindow* cpp_value = ToDOMWindow(info.GetIsolate(), v8_value);
+  Window* cpp_value = ToDOMWindow(info.GetIsolate(), v8_value);
 
   // Type check per: http://heycam.github.io/webidl/#es-interface
   if (!cpp_value) {
@@ -1230,7 +1218,7 @@ static void Float32ArrayAttributeAttributeSetter(
   ExceptionState exception_state(isolate, ExceptionState::kSetterContext, "TestObject", "float32ArrayAttribute");
 
   // Prepare the value to be set.
-  NotShared<DOMFloat32Array> cpp_value = ToNotShared<NotShared<DOMFloat32Array>>(info.GetIsolate(), v8_value, exception_state);
+  NotShared<Float32Array> cpp_value = ToNotShared<NotShared<Float32Array>>(info.GetIsolate(), v8_value, exception_state);
   if (exception_state.HadException())
     return;
 
@@ -1264,7 +1252,7 @@ static void Uint8ArrayAttributeAttributeSetter(
   ExceptionState exception_state(isolate, ExceptionState::kSetterContext, "TestObject", "uint8ArrayAttribute");
 
   // Prepare the value to be set.
-  NotShared<DOMUint8Array> cpp_value = ToNotShared<NotShared<DOMUint8Array>>(info.GetIsolate(), v8_value, exception_state);
+  NotShared<Uint8Array> cpp_value = ToNotShared<NotShared<Uint8Array>>(info.GetIsolate(), v8_value, exception_state);
   if (exception_state.HadException())
     return;
 
@@ -2230,14 +2218,25 @@ static void CheckSecurityForNodeReadonlyDocumentAttributeAttributeGetter(const v
 
   // Perform a security check for the returned object.
   ExceptionState exception_state(info.GetIsolate(), ExceptionState::kGetterContext, "TestObject", "checkSecurityForNodeReadonlyDocumentAttribute");
-  if (!BindingSecurity::ShouldAllowAccessTo(CurrentDOMWindow(info.GetIsolate()), WTF::GetPtr(impl->checkSecurityForNodeReadonlyDocumentAttribute()), BindingSecurity::ErrorReportOption::kDoNotReport)) {
+  if (!BindingSecurity::ShouldAllowAccessTo(CurrentDOMWindow(info.GetIsolate()), cpp_value, BindingSecurity::ErrorReportOption::kDoNotReport)) {
     UseCounter::Count(CurrentExecutionContext(info.GetIsolate()),
                       WebFeature::kCrossOriginTestObjectCheckSecurityForNodeReadonlyDocumentAttribute);
     V8SetReturnValueNull(info);
     return;
   }
 
-  V8SetReturnValue(info, ToV8(WTF::GetPtr(impl->checkSecurityForNodeReadonlyDocumentAttribute()), ToV8(impl->contentWindow(), v8::Local<v8::Object>(), info.GetIsolate()).As<v8::Object>(), info.GetIsolate()));
+  Document* cpp_value(WTF::GetPtr(impl->checkSecurityForNodeReadonlyDocumentAttribute()));
+
+  // Keep the wrapper object for the return value alive as long as |this|
+  // object is alive in order to save creation time of the wrapper object.
+  if (cpp_value && DOMDataStore::SetReturnValue(info.GetReturnValue(), cpp_value))
+    return;
+  v8::Local<v8::Value> v8_value(ToV8(cpp_value, holder, info.GetIsolate()));
+  V8PrivateProperty::GetSymbol(
+      info.GetIsolate(), "KeepAlive#TestObject#checkSecurityForNodeReadonlyDocumentAttribute")
+      .Set(holder, v8_value);
+
+  V8SetReturnValue(info, v8_value);
 }
 
 static void CustomGetterLongAttributeAttributeSetter(
@@ -4478,7 +4477,7 @@ static void UsvStringMethodMethod(const v8::FunctionCallbackInfo<v8::Value>& inf
 static void ReadonlyDOMTimeStampMethodMethod(const v8::FunctionCallbackInfo<v8::Value>& info) {
   TestObject* impl = V8TestObject::ToImpl(info.Holder());
 
-  V8SetReturnValue(info, static_cast<double>(impl->readonlyDOMTimeStampMethod()));
+  V8SetReturnValue(info, impl->readonlyDOMTimeStampMethod());
 }
 
 static void BooleanMethodMethod(const v8::FunctionCallbackInfo<v8::Value>& info) {
@@ -4618,19 +4617,19 @@ static void VoidMethodUSVStringArgMethod(const v8::FunctionCallbackInfo<v8::Valu
 }
 
 static void VoidMethodDOMTimeStampArgMethod(const v8::FunctionCallbackInfo<v8::Value>& info) {
-  ExceptionState exception_state(info.GetIsolate(), ExceptionState::kExecutionContext, "TestObject", "voidMethodDOMTimeStampArg");
-
   TestObject* impl = V8TestObject::ToImpl(info.Holder());
 
   if (UNLIKELY(info.Length() < 1)) {
-    exception_state.ThrowTypeError(ExceptionMessages::NotEnoughArguments(1, info.Length()));
+    V8ThrowException::ThrowTypeError(info.GetIsolate(), ExceptionMessages::FailedToExecute("voidMethodDOMTimeStampArg", "TestObject", ExceptionMessages::NotEnoughArguments(1, info.Length())));
     return;
   }
 
-  uint64_t dom_time_stamp_arg;
-  dom_time_stamp_arg = NativeValueTraits<IDLUnsignedLongLong>::NativeValue(info.GetIsolate(), info[0], exception_state);
-  if (exception_state.HadException())
+  DOMTimeStamp* dom_time_stamp_arg;
+  dom_time_stamp_arg = V8DOMTimeStamp::ToImplWithTypeCheck(info.GetIsolate(), info[0]);
+  if (!dom_time_stamp_arg) {
+    V8ThrowException::ThrowTypeError(info.GetIsolate(), ExceptionMessages::FailedToExecute("voidMethodDOMTimeStampArg", "TestObject", "parameter 1 is not of type 'DOMTimeStamp'."));
     return;
+  }
 
   impl->voidMethodDOMTimeStampArg(dom_time_stamp_arg);
 }
@@ -5160,8 +5159,8 @@ static void VoidMethodFloat32ArrayArgMethod(const v8::FunctionCallbackInfo<v8::V
     return;
   }
 
-  NotShared<DOMFloat32Array> float32_array_arg;
-  float32_array_arg = ToNotShared<NotShared<DOMFloat32Array>>(info.GetIsolate(), info[0], exception_state);
+  NotShared<Float32Array> float32_array_arg;
+  float32_array_arg = ToNotShared<NotShared<Float32Array>>(info.GetIsolate(), info[0], exception_state);
   if (exception_state.HadException())
     return;
   if (!float32_array_arg) {
@@ -5182,8 +5181,8 @@ static void VoidMethodInt32ArrayArgMethod(const v8::FunctionCallbackInfo<v8::Val
     return;
   }
 
-  NotShared<DOMInt32Array> int32_array_arg;
-  int32_array_arg = ToNotShared<NotShared<DOMInt32Array>>(info.GetIsolate(), info[0], exception_state);
+  NotShared<Int32Array> int32_array_arg;
+  int32_array_arg = ToNotShared<NotShared<Int32Array>>(info.GetIsolate(), info[0], exception_state);
   if (exception_state.HadException())
     return;
   if (!int32_array_arg) {
@@ -5204,8 +5203,8 @@ static void VoidMethodUint8ArrayArgMethod(const v8::FunctionCallbackInfo<v8::Val
     return;
   }
 
-  NotShared<DOMUint8Array> uint8_array_arg;
-  uint8_array_arg = ToNotShared<NotShared<DOMUint8Array>>(info.GetIsolate(), info[0], exception_state);
+  NotShared<Uint8Array> uint8_array_arg;
+  uint8_array_arg = ToNotShared<NotShared<Uint8Array>>(info.GetIsolate(), info[0], exception_state);
   if (exception_state.HadException())
     return;
   if (!uint8_array_arg) {
@@ -5248,8 +5247,8 @@ static void VoidMethodAllowSharedUint8ArrayArgMethod(const v8::FunctionCallbackI
     return;
   }
 
-  MaybeShared<DOMUint8Array> uint8_array_arg;
-  uint8_array_arg = ToMaybeShared<MaybeShared<DOMUint8Array>>(info.GetIsolate(), info[0], exception_state);
+  MaybeShared<Uint8Array> uint8_array_arg;
+  uint8_array_arg = ToMaybeShared<MaybeShared<Uint8Array>>(info.GetIsolate(), info[0], exception_state);
   if (exception_state.HadException())
     return;
   if (!uint8_array_arg) {
@@ -5929,13 +5928,8 @@ static void VoidMethodNodeFilterArgMethod(const v8::FunctionCallbackInfo<v8::Val
     return;
   }
 
-  V8NodeFilter* node_filter_arg;
-  if (info[0]->IsObject()) {
-    node_filter_arg = V8NodeFilter::Create(info[0].As<v8::Object>());
-  } else {
-    V8ThrowException::ThrowTypeError(info.GetIsolate(), ExceptionMessages::FailedToExecute("voidMethodNodeFilterArg", "TestObject", "The callback provided as parameter 1 is not an object."));
-    return;
-  }
+  NodeFilter* node_filter_arg;
+  node_filter_arg = V8NodeFilter::ToImplWithTypeCheck(info.GetIsolate(), info[0]);
 
   impl->voidMethodNodeFilterArg(node_filter_arg);
 }
@@ -7524,7 +7518,7 @@ static void PromiseOverloadMethod2Method(const v8::FunctionCallbackInfo<v8::Valu
   }
   TestObject* impl = V8TestObject::ToImpl(info.Holder());
 
-  DOMWindow* arg_1;
+  Window* arg_1;
   double arg_2;
   arg_1 = ToDOMWindow(info.GetIsolate(), info[0]);
   if (!arg_1) {

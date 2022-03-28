@@ -15,13 +15,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/idl_types.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h"
 #include "third_party/blink/renderer/bindings/core/v8/to_v8_for_core.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_element.h"
-#include "third_party/blink/renderer/core/animation/element_animation.h"
-#include "third_party/blink/renderer/core/css/cssom/element_computed_style_map.h"
-#include "third_party/blink/renderer/core/dom/child_node.h"
-#include "third_party/blink/renderer/core/dom/non_document_type_child_node.h"
-#include "third_party/blink/renderer/core/dom/parent_node.h"
-#include "third_party/blink/renderer/core/fullscreen/element_fullscreen.h"
 
 namespace blink {
 
@@ -44,18 +37,18 @@ ElementSequenceOrByteStringDoubleOrStringRecord ElementSequenceOrByteStringDoubl
   return container;
 }
 
-const HeapVector<Member<Element>>& ElementSequenceOrByteStringDoubleOrStringRecord::GetAsElementSequence() const {
+const Vector<Member<Element>>& ElementSequenceOrByteStringDoubleOrStringRecord::GetAsElementSequence() const {
   DCHECK(IsElementSequence());
   return element_sequence_;
 }
 
-void ElementSequenceOrByteStringDoubleOrStringRecord::SetElementSequence(const HeapVector<Member<Element>>& value) {
+void ElementSequenceOrByteStringDoubleOrStringRecord::SetElementSequence(const Vector<Member<Element>>& value) {
   DCHECK(IsNull());
   element_sequence_ = value;
   type_ = SpecificType::kElementSequence;
 }
 
-ElementSequenceOrByteStringDoubleOrStringRecord ElementSequenceOrByteStringDoubleOrStringRecord::FromElementSequence(const HeapVector<Member<Element>>& value) {
+ElementSequenceOrByteStringDoubleOrStringRecord ElementSequenceOrByteStringDoubleOrStringRecord::FromElementSequence(const Vector<Member<Element>>& value) {
   ElementSequenceOrByteStringDoubleOrStringRecord container;
   container.SetElementSequence(value);
   return container;
@@ -67,7 +60,6 @@ ElementSequenceOrByteStringDoubleOrStringRecord& ElementSequenceOrByteStringDoub
 
 void ElementSequenceOrByteStringDoubleOrStringRecord::Trace(blink::Visitor* visitor) {
   visitor->Trace(byte_string_double_or_string_record_);
-  visitor->Trace(element_sequence_);
 }
 
 void V8ElementSequenceOrByteStringDoubleOrStringRecord::ToImpl(
@@ -83,7 +75,7 @@ void V8ElementSequenceOrByteStringDoubleOrStringRecord::ToImpl(
     return;
 
   if (HasCallableIteratorSymbol(isolate, v8_value, exception_state)) {
-    HeapVector<Member<Element>> cpp_value = NativeValueTraits<IDLSequence<Element>>::NativeValue(isolate, v8_value, exception_state);
+    Vector<Member<Element>> cpp_value = NativeValueTraits<IDLSequence<Element>>::NativeValue(isolate, v8_value, exception_state);
     if (exception_state.HadException())
       return;
     impl.SetElementSequence(cpp_value);

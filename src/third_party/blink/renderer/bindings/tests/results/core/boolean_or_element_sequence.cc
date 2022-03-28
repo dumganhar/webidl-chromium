@@ -14,13 +14,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/idl_types.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h"
 #include "third_party/blink/renderer/bindings/core/v8/to_v8_for_core.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_element.h"
-#include "third_party/blink/renderer/core/animation/element_animation.h"
-#include "third_party/blink/renderer/core/css/cssom/element_computed_style_map.h"
-#include "third_party/blink/renderer/core/dom/child_node.h"
-#include "third_party/blink/renderer/core/dom/non_document_type_child_node.h"
-#include "third_party/blink/renderer/core/dom/parent_node.h"
-#include "third_party/blink/renderer/core/fullscreen/element_fullscreen.h"
 
 namespace blink {
 
@@ -43,18 +36,18 @@ BooleanOrElementSequence BooleanOrElementSequence::FromBoolean(bool value) {
   return container;
 }
 
-const HeapVector<Member<Element>>& BooleanOrElementSequence::GetAsElementSequence() const {
+const Vector<Member<Element>>& BooleanOrElementSequence::GetAsElementSequence() const {
   DCHECK(IsElementSequence());
   return element_sequence_;
 }
 
-void BooleanOrElementSequence::SetElementSequence(const HeapVector<Member<Element>>& value) {
+void BooleanOrElementSequence::SetElementSequence(const Vector<Member<Element>>& value) {
   DCHECK(IsNull());
   element_sequence_ = value;
   type_ = SpecificType::kElementSequence;
 }
 
-BooleanOrElementSequence BooleanOrElementSequence::FromElementSequence(const HeapVector<Member<Element>>& value) {
+BooleanOrElementSequence BooleanOrElementSequence::FromElementSequence(const Vector<Member<Element>>& value) {
   BooleanOrElementSequence container;
   container.SetElementSequence(value);
   return container;
@@ -65,7 +58,6 @@ BooleanOrElementSequence::~BooleanOrElementSequence() = default;
 BooleanOrElementSequence& BooleanOrElementSequence::operator=(const BooleanOrElementSequence&) = default;
 
 void BooleanOrElementSequence::Trace(blink::Visitor* visitor) {
-  visitor->Trace(element_sequence_);
 }
 
 void V8BooleanOrElementSequence::ToImpl(
@@ -81,7 +73,7 @@ void V8BooleanOrElementSequence::ToImpl(
     return;
 
   if (HasCallableIteratorSymbol(isolate, v8_value, exception_state)) {
-    HeapVector<Member<Element>> cpp_value = NativeValueTraits<IDLSequence<Element>>::NativeValue(isolate, v8_value, exception_state);
+    Vector<Member<Element>> cpp_value = NativeValueTraits<IDLSequence<Element>>::NativeValue(isolate, v8_value, exception_state);
     if (exception_state.HadException())
       return;
     impl.SetElementSequence(cpp_value);

@@ -27,7 +27,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_void_callback_function.h"
 #include "third_party/blink/renderer/bindings/tests/idls/core/test_interface_2.h"
 #include "third_party/blink/renderer/core/core_export.h"
-#include "third_party/blink/renderer/core/testing/internal_dictionary.h"
 #include "third_party/blink/renderer/core/typed_arrays/array_buffer_view_helpers.h"
 #include "third_party/blink/renderer/core/typed_arrays/dom_typed_array.h"
 #include "third_party/blink/renderer/platform/bindings/trace_wrapper_member.h"
@@ -38,6 +37,7 @@
 namespace blink {
 
 class EventTarget;
+class InternalDictionary;
 class TestObject;
 class TestInterfaceImplementation;
 class Element;
@@ -156,18 +156,18 @@ class CORE_EXPORT TestDictionary : public IDLDictionaryBase {
   inline void setElementOrNullMemberToNull();
 
   bool hasElementOrNullRecordMember() const { return has_element_or_null_record_member_; }
-  const HeapVector<std::pair<String, Member<Element>>>& elementOrNullRecordMember() const {
+  const Vector<std::pair<String, Member<Element>>>& elementOrNullRecordMember() const {
     DCHECK(has_element_or_null_record_member_);
     return element_or_null_record_member_;
   }
-  void setElementOrNullRecordMember(const HeapVector<std::pair<String, Member<Element>>>&);
+  void setElementOrNullRecordMember(const Vector<std::pair<String, Member<Element>>>&);
 
   bool hasElementOrNullSequenceMember() const { return has_element_or_null_sequence_member_; }
-  const HeapVector<Member<Element>>& elementOrNullSequenceMember() const {
+  const Vector<Member<Element>>& elementOrNullSequenceMember() const {
     DCHECK(has_element_or_null_sequence_member_);
     return element_or_null_sequence_member_;
   }
-  void setElementOrNullSequenceMember(const HeapVector<Member<Element>>&);
+  void setElementOrNullSequenceMember(const Vector<Member<Element>>&);
 
   bool hasEnumMember() const { return !enum_member_.IsNull(); }
   const String& enumMember() const {
@@ -203,11 +203,11 @@ class CORE_EXPORT TestDictionary : public IDLDictionaryBase {
   void setGarbageCollectedRecordMember(const HeapVector<std::pair<String, Member<TestObject>>>&);
 
   bool hasInternalDictionarySequenceMember() const { return has_internal_dictionary_sequence_member_; }
-  const HeapVector<Member<InternalDictionary>>& internalDictionarySequenceMember() const {
+  const Vector<Member<InternalDictionary>>& internalDictionarySequenceMember() const {
     DCHECK(has_internal_dictionary_sequence_member_);
     return internal_dictionary_sequence_member_;
   }
-  void setInternalDictionarySequenceMember(const HeapVector<Member<InternalDictionary>>&);
+  void setInternalDictionarySequenceMember(const Vector<Member<InternalDictionary>>&);
 
   bool hasIsPublic() const { return has_is_public_; }
   bool isPublic() const {
@@ -396,10 +396,10 @@ class CORE_EXPORT TestDictionary : public IDLDictionaryBase {
   void setTreatNullAsStringSequenceMember(const Vector<String>&);
 
   bool hasUint8ArrayMember() const { return uint8_array_member_; }
-  NotShared<DOMUint8Array> uint8ArrayMember() const {
+  NotShared<Uint8Array> uint8ArrayMember() const {
     return uint8_array_member_;
   }
-  inline void setUint8ArrayMember(NotShared<DOMUint8Array>);
+  inline void setUint8ArrayMember(NotShared<Uint8Array>);
 
   bool hasUnionInRecordMember() const { return has_union_in_record_member_; }
   const HeapVector<std::pair<String, LongOrBoolean>>& unionInRecordMember() const {
@@ -509,14 +509,14 @@ class CORE_EXPORT TestDictionary : public IDLDictionaryBase {
   DoubleOrString double_or_string_member_;
   HeapVector<DoubleOrString> double_or_string_sequence_member_;
   Member<Element> element_or_null_member_;
-  HeapVector<std::pair<String, Member<Element>>> element_or_null_record_member_;
-  HeapVector<Member<Element>> element_or_null_sequence_member_;
+  Vector<std::pair<String, Member<Element>>> element_or_null_record_member_;
+  Vector<Member<Element>> element_or_null_sequence_member_;
   String enum_member_;
   String enum_or_null_member_;
   Vector<String> enum_sequence_member_;
   Member<EventTarget> event_target_member_;
   HeapVector<std::pair<String, Member<TestObject>>> garbage_collected_record_member_;
-  HeapVector<Member<InternalDictionary>> internal_dictionary_sequence_member_;
+  Vector<Member<InternalDictionary>> internal_dictionary_sequence_member_;
   bool is_public_;
   int32_t long_member_;
   bool member_with_hyphen_in_name_;
@@ -545,7 +545,7 @@ class CORE_EXPORT TestDictionary : public IDLDictionaryBase {
   HeapVector<Member<TestObject>> test_object_sequence_member_;
   TraceWrapperMember<V8TreatNonObjectAsNullVoidFunction> treat_non_null_obj_member_;
   Vector<String> treat_null_as_string_sequence_member_;
-  Member<DOMUint8Array> uint8_array_member_;
+  Member<Uint8Array> uint8_array_member_;
   HeapVector<std::pair<String, LongOrBoolean>> union_in_record_member_;
   DoubleOrDoubleSequence union_member_with_sequence_default_;
   HeapVector<std::pair<String, DoubleOrString>> union_or_null_record_member_;
@@ -682,7 +682,7 @@ void TestDictionary::setTestInterfaceOrNullMemberToNull() {
   has_test_interface_or_null_member_ = true;
 }
 
-void TestDictionary::setUint8ArrayMember(NotShared<DOMUint8Array> value) {
+void TestDictionary::setUint8ArrayMember(NotShared<Uint8Array> value) {
   uint8_array_member_ = value.View();
 }
 

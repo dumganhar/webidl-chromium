@@ -14,12 +14,8 @@
 #include "base/optional.h"
 #include "third_party/blink/renderer/bindings/core/v8/dictionary.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_array_buffer_view.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_uint8_array.h"
 #include "third_party/blink/renderer/core/core_export.h"
-#include "third_party/blink/renderer/core/typed_arrays/array_buffer_view_helpers.h"
-#include "third_party/blink/renderer/core/typed_arrays/flexible_array_buffer_view.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/heap/handle.h"
 
@@ -39,9 +35,9 @@ class CORE_EXPORT TestInterface2OrUint8Array final {
   static TestInterface2OrUint8Array FromTestInterface2(TestInterface2*);
 
   bool IsUint8Array() const { return type_ == SpecificType::kUint8Array; }
-  NotShared<DOMUint8Array> GetAsUint8Array() const;
-  void SetUint8Array(NotShared<DOMUint8Array>);
-  static TestInterface2OrUint8Array FromUint8Array(NotShared<DOMUint8Array>);
+  NotShared<Uint8Array> GetAsUint8Array() const;
+  void SetUint8Array(NotShared<Uint8Array>);
+  static TestInterface2OrUint8Array FromUint8Array(NotShared<Uint8Array>);
 
   TestInterface2OrUint8Array(const TestInterface2OrUint8Array&);
   ~TestInterface2OrUint8Array();
@@ -57,7 +53,7 @@ class CORE_EXPORT TestInterface2OrUint8Array final {
   SpecificType type_;
 
   Member<TestInterface2> test_interface_2_;
-  Member<DOMUint8Array> uint8_array_;
+  Member<Uint8Array> uint8_array_;
 
   friend CORE_EXPORT v8::Local<v8::Value> ToV8(const TestInterface2OrUint8Array&, v8::Local<v8::Object>, v8::Isolate*);
 };

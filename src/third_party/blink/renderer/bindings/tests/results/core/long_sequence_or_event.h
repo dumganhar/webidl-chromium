@@ -21,8 +21,6 @@
 
 namespace blink {
 
-class Event;
-
 class CORE_EXPORT LongSequenceOrEvent final {
   DISALLOW_NEW();
  public:

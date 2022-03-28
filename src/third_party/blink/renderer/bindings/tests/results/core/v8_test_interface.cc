@@ -17,13 +17,9 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_promise.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_dom_configuration.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_element.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_iterator.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_node.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_interface.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_interface_2.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_interface_empty.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_window.h"
 #include "third_party/blink/renderer/bindings/tests/idls/core/test_implements_2.h"
 #include "third_party/blink/renderer/bindings/tests/idls/core/test_implements_3_implementation.h"
 #include "third_party/blink/renderer/bindings/tests/idls/core/test_interface_partial.h"
@@ -1800,7 +1796,7 @@ static void OverloadMethodWithExposedAndRuntimeEnabledFlag2Method(const v8::Func
 static void OverloadMethodWithExposedAndRuntimeEnabledFlag3Method(const v8::FunctionCallbackInfo<v8::Value>& info) {
   TestInterfaceImplementation* impl = V8TestInterface::ToImpl(info.Holder());
 
-  DOMWindow* window;
+  Window* window;
   window = ToDOMWindow(info.GetIsolate(), info[0]);
   if (!window) {
     V8ThrowException::ThrowTypeError(info.GetIsolate(), ExceptionMessages::FailedToExecute("overloadMethodWithExposedAndRuntimeEnabledFlag", "TestInterface", "parameter 1 is not of type 'Window'."));
@@ -1912,7 +1908,7 @@ static void PromiseMethodPartialOverload2Method(const v8::FunctionCallbackInfo<v
   }
   TestInterfaceImplementation* impl = V8TestInterface::ToImpl(info.Holder());
 
-  DOMWindow* window;
+  Window* window;
   window = ToDOMWindow(info.GetIsolate(), info[0]);
   if (!window) {
     exception_state.ThrowTypeError("parameter 1 is not of type 'Window'.");
@@ -2058,7 +2054,7 @@ static void MethodWithNullableSequencesMethod(const v8::FunctionCallbackInfo<v8:
 
   Vector<base::Optional<double>> numbers;
   Vector<String> strings;
-  HeapVector<Member<Element>> elements;
+  Vector<Member<Element>> elements;
   HeapVector<DoubleOrString> unions;
   numbers = NativeValueTraits<IDLSequence<IDLNullable<IDLDouble>>>::NativeValue(info.GetIsolate(), info[0], exception_state);
   if (exception_state.HadException())
@@ -2091,7 +2087,7 @@ static void MethodWithNullableRecordsMethod(const v8::FunctionCallbackInfo<v8::V
 
   Vector<std::pair<String, base::Optional<double>>> numbers;
   Vector<std::pair<String, String>> strings;
-  HeapVector<std::pair<String, Member<Element>>> elements;
+  Vector<std::pair<String, Member<Element>>> elements;
   HeapVector<std::pair<String, DoubleOrString>> unions;
   numbers = NativeValueTraits<IDLRecord<IDLString, IDLNullable<IDLDouble>>>::NativeValue(info.GetIsolate(), info[0], exception_state);
   if (exception_state.HadException())

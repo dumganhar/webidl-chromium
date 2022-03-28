@@ -15,20 +15,13 @@
 #include "third_party/blink/renderer/bindings/core/v8/idl_types.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_array_buffer_view.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_element.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_event_target.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_internal_dictionary.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_interface.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_interface_2.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_test_object.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_treat_non_object_as_null_void_function.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_uint8_array.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_void_callback_function.h"
 #include "third_party/blink/renderer/core/frame/deprecation.h"
 #include "third_party/blink/renderer/core/origin_trials/origin_trials.h"
-#include "third_party/blink/renderer/core/typed_arrays/array_buffer_view_helpers.h"
-#include "third_party/blink/renderer/core/typed_arrays/flexible_array_buffer_view.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
 
@@ -379,7 +372,7 @@ void V8TestDictionary::ToImpl(v8::Isolate* isolate, v8::Local<v8::Value> v8_valu
   if (element_or_null_record_member_value.IsEmpty() || element_or_null_record_member_value->IsUndefined()) {
     // Do nothing.
   } else {
-    HeapVector<std::pair<String, Member<Element>>> element_or_null_record_member_cpp_value = NativeValueTraits<IDLRecord<IDLString, IDLNullable<Element>>>::NativeValue(isolate, element_or_null_record_member_value, exception_state);
+    Vector<std::pair<String, Member<Element>>> element_or_null_record_member_cpp_value = NativeValueTraits<IDLRecord<IDLString, IDLNullable<Element>>>::NativeValue(isolate, element_or_null_record_member_value, exception_state);
     if (exception_state.HadException())
       return;
     impl->setElementOrNullRecordMember(element_or_null_record_member_cpp_value);
@@ -393,7 +386,7 @@ void V8TestDictionary::ToImpl(v8::Isolate* isolate, v8::Local<v8::Value> v8_valu
   if (element_or_null_sequence_member_value.IsEmpty() || element_or_null_sequence_member_value->IsUndefined()) {
     // Do nothing.
   } else {
-    HeapVector<Member<Element>> element_or_null_sequence_member_cpp_value = NativeValueTraits<IDLSequence<IDLNullable<Element>>>::NativeValue(isolate, element_or_null_sequence_member_value, exception_state);
+    Vector<Member<Element>> element_or_null_sequence_member_cpp_value = NativeValueTraits<IDLSequence<IDLNullable<Element>>>::NativeValue(isolate, element_or_null_sequence_member_value, exception_state);
     if (exception_state.HadException())
       return;
     impl->setElementOrNullSequenceMember(element_or_null_sequence_member_cpp_value);
@@ -504,7 +497,7 @@ void V8TestDictionary::ToImpl(v8::Isolate* isolate, v8::Local<v8::Value> v8_valu
   if (internal_dictionary_sequence_member_value.IsEmpty() || internal_dictionary_sequence_member_value->IsUndefined()) {
     // Do nothing.
   } else {
-    HeapVector<Member<InternalDictionary>> internal_dictionary_sequence_member_cpp_value = NativeValueTraits<IDLSequence<InternalDictionary>>::NativeValue(isolate, internal_dictionary_sequence_member_value, exception_state);
+    Vector<Member<InternalDictionary>> internal_dictionary_sequence_member_cpp_value = NativeValueTraits<IDLSequence<InternalDictionary>>::NativeValue(isolate, internal_dictionary_sequence_member_value, exception_state);
     if (exception_state.HadException())
       return;
     impl->setInternalDictionarySequenceMember(internal_dictionary_sequence_member_cpp_value);
@@ -876,7 +869,7 @@ void V8TestDictionary::ToImpl(v8::Isolate* isolate, v8::Local<v8::Value> v8_valu
   if (uint8_array_member_value.IsEmpty() || uint8_array_member_value->IsUndefined()) {
     // Do nothing.
   } else {
-    NotShared<DOMUint8Array> uint8_array_member_cpp_value = ToNotShared<NotShared<DOMUint8Array>>(isolate, uint8_array_member_value, exception_state);
+    NotShared<Uint8Array> uint8_array_member_cpp_value = ToNotShared<NotShared<Uint8Array>>(isolate, uint8_array_member_value, exception_state);
     if (exception_state.HadException())
       return;
     if (!uint8_array_member_cpp_value) {

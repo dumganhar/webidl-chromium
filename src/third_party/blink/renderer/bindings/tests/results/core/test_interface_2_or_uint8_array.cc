@@ -35,18 +35,18 @@ TestInterface2OrUint8Array TestInterface2OrUint8Array::FromTestInterface2(TestIn
   return container;
 }
 
-NotShared<DOMUint8Array> TestInterface2OrUint8Array::GetAsUint8Array() const {
+NotShared<Uint8Array> TestInterface2OrUint8Array::GetAsUint8Array() const {
   DCHECK(IsUint8Array());
   return uint8_array_;
 }
 
-void TestInterface2OrUint8Array::SetUint8Array(NotShared<DOMUint8Array> value) {
+void TestInterface2OrUint8Array::SetUint8Array(NotShared<Uint8Array> value) {
   DCHECK(IsNull());
-  uint8_array_ = Member<DOMUint8Array>(value.View());
+  uint8_array_ = Member<Uint8Array>(value.View());
   type_ = SpecificType::kUint8Array;
 }
 
-TestInterface2OrUint8Array TestInterface2OrUint8Array::FromUint8Array(NotShared<DOMUint8Array> value) {
+TestInterface2OrUint8Array TestInterface2OrUint8Array::FromUint8Array(NotShared<Uint8Array> value) {
   TestInterface2OrUint8Array container;
   container.SetUint8Array(value);
   return container;
@@ -58,7 +58,6 @@ TestInterface2OrUint8Array& TestInterface2OrUint8Array::operator=(const TestInte
 
 void TestInterface2OrUint8Array::Trace(blink::Visitor* visitor) {
   visitor->Trace(test_interface_2_);
-  visitor->Trace(uint8_array_);
 }
 
 void V8TestInterface2OrUint8Array::ToImpl(
@@ -80,7 +79,7 @@ void V8TestInterface2OrUint8Array::ToImpl(
   }
 
   if (v8_value->IsUint8Array()) {
-    NotShared<DOMUint8Array> cpp_value = ToNotShared<NotShared<DOMUint8Array>>(isolate, v8_value, exception_state);
+    NotShared<Uint8Array> cpp_value = ToNotShared<NotShared<Uint8Array>>(isolate, v8_value, exception_state);
     if (exception_state.HadException())
       return;
     impl.SetUint8Array(cpp_value);

@@ -13,7 +13,6 @@
 #include "base/stl_util.h"
 #include "third_party/blink/renderer/bindings/core/v8/idl_types.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_event_init.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
 namespace blink {

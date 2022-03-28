@@ -12,15 +12,9 @@
 
 #include "base/memory/scoped_refptr.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_dom_configuration.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_location.h"
-#include "third_party/blink/renderer/core/animation/document_animation.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
-#include "third_party/blink/renderer/core/fullscreen/document_fullscreen.h"
-#include "third_party/blink/renderer/core/svg/svg_document_extensions.h"
-#include "third_party/blink/renderer/core/xml/document_xpath_evaluator.h"
 #include "third_party/blink/renderer/platform/bindings/exception_messages.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
-#include "third_party/blink/renderer/platform/bindings/runtime_call_stats.h"
 #include "third_party/blink/renderer/platform/bindings/v8_object_constructor.h"
 #include "third_party/blink/renderer/platform/wtf/get_ptr.h"
 
@@ -39,7 +33,7 @@ const WrapperTypeInfo v8_test_interface_document_wrapper_type_info = {
     "TestInterfaceDocument",
     V8Document::GetWrapperTypeInfo(),
     WrapperTypeInfo::kWrapperTypeObjectPrototype,
-    WrapperTypeInfo::kNodeClassId,
+    WrapperTypeInfo::kObjectClassId,
     WrapperTypeInfo::kNotInheritFromActiveScriptWrappable,
 };
 #if defined(COMPONENT_BUILD) && defined(WIN32) && defined(__clang__)
@@ -66,64 +60,7 @@ static_assert(
 
 namespace test_interface_document_v8_internal {
 
-static void LocationAttributeGetter(const v8::FunctionCallbackInfo<v8::Value>& info) {
-  v8::Local<v8::Object> holder = info.Holder();
-
-  TestInterfaceDocument* impl = V8TestInterfaceDocument::ToImpl(holder);
-
-  V8SetReturnValueFast(info, WTF::GetPtr(impl->location()), impl);
-}
-
-static void LocationAttributeSetter(
-    v8::Local<v8::Value> v8_value, const v8::FunctionCallbackInfo<v8::Value>& info) {
-  v8::Isolate* isolate = info.GetIsolate();
-  ALLOW_UNUSED_LOCAL(isolate);
-
-  v8::Local<v8::Object> holder = info.Holder();
-  ALLOW_UNUSED_LOCAL(holder);
-
-  // [PutForwards] => location.href
-  ExceptionState exception_state(isolate, ExceptionState::kSetterContext, "TestInterfaceDocument", "location");
-  v8::Local<v8::Value> target;
-  if (!holder->Get(isolate->GetCurrentContext(), V8AtomicString(isolate, "location"))
-      .ToLocal(&target)) {
-    return;
-  }
-  if (!target->IsObject()) {
-    exception_state.ThrowTypeError("The attribute value is not an object");
-    return;
-  }
-  bool result;
-  if (!target.As<v8::Object>()->Set(
-          isolate->GetCurrentContext(),
-          V8AtomicString(isolate, "href"),
-          v8_value).To(&result)) {
-    return;
-  }
-  if (!result)
-    return;
-}
-
 }  // namespace test_interface_document_v8_internal
-
-void V8TestInterfaceDocument::LocationAttributeGetterCallback(const v8::FunctionCallbackInfo<v8::Value>& info) {
-  RUNTIME_CALL_TIMER_SCOPE_DISABLED_BY_DEFAULT(info.GetIsolate(), "Blink_TestInterfaceDocument_location_Getter");
-
-  test_interface_document_v8_internal::LocationAttributeGetter(info);
-}
-
-void V8TestInterfaceDocument::LocationAttributeSetterCallback(
-    const v8::FunctionCallbackInfo<v8::Value>& info) {
-  RUNTIME_CALL_TIMER_SCOPE_DISABLED_BY_DEFAULT(info.GetIsolate(), "Blink_TestInterfaceDocument_location_Setter");
-
-  v8::Local<v8::Value> v8_value = info[0];
-
-  test_interface_document_v8_internal::LocationAttributeSetter(v8_value, info);
-}
-
-static constexpr V8DOMConfiguration::AccessorConfiguration kV8TestInterfaceDocumentAccessors[] = {
-    { "location", V8TestInterfaceDocument::LocationAttributeGetterCallback, V8TestInterfaceDocument::LocationAttributeSetterCallback, V8PrivateProperty::kNoCachedAccessor, static_cast<v8::PropertyAttribute>(v8::DontDelete), V8DOMConfiguration::kOnInstance, V8DOMConfiguration::kCheckHolder, V8DOMConfiguration::kHasNoSideEffect, V8DOMConfiguration::kAlwaysCallGetter, V8DOMConfiguration::kAllWorlds },
-};
 
 static void InstallV8TestInterfaceDocumentTemplate(
     v8::Isolate* isolate,
@@ -140,9 +77,6 @@ static void InstallV8TestInterfaceDocumentTemplate(
   ALLOW_UNUSED_LOCAL(prototype_template);
 
   // Register IDL constants, attributes and operations.
-  V8DOMConfiguration::InstallAccessors(
-      isolate, world, instance_template, prototype_template, interface_template,
-      signature, kV8TestInterfaceDocumentAccessors, base::size(kV8TestInterfaceDocumentAccessors));
 
   // Custom signature
 

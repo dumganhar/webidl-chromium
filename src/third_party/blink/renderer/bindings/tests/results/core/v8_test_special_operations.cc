@@ -14,7 +14,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/idl_types.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_dom_configuration.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_node.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_node_list.h"
 #include "third_party/blink/renderer/core/dom/name_node_list.h"
 #include "third_party/blink/renderer/core/dom/node_list.h"

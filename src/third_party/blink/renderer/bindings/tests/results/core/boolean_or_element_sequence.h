@@ -21,8 +21,6 @@
 
 namespace blink {
 
-class Element;
-
 class CORE_EXPORT BooleanOrElementSequence final {
   DISALLOW_NEW();
  public:
@@ -35,9 +33,9 @@ class CORE_EXPORT BooleanOrElementSequence final {
   static BooleanOrElementSequence FromBoolean(bool);
 
   bool IsElementSequence() const { return type_ == SpecificType::kElementSequence; }
-  const HeapVector<Member<Element>>& GetAsElementSequence() const;
-  void SetElementSequence(const HeapVector<Member<Element>>&);
-  static BooleanOrElementSequence FromElementSequence(const HeapVector<Member<Element>>&);
+  const Vector<Member<Element>>& GetAsElementSequence() const;
+  void SetElementSequence(const Vector<Member<Element>>&);
+  static BooleanOrElementSequence FromElementSequence(const Vector<Member<Element>>&);
 
   BooleanOrElementSequence(const BooleanOrElementSequence&);
   ~BooleanOrElementSequence();
@@ -53,7 +51,7 @@ class CORE_EXPORT BooleanOrElementSequence final {
   SpecificType type_;
 
   bool boolean_;
-  HeapVector<Member<Element>> element_sequence_;
+  Vector<Member<Element>> element_sequence_;
 
   friend CORE_EXPORT v8::Local<v8::Value> ToV8(const BooleanOrElementSequence&, v8::Local<v8::Object>, v8::Isolate*);
 };

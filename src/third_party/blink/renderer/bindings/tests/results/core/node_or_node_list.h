@@ -21,9 +21,6 @@
 
 namespace blink {
 
-class Node;
-class NodeList;
-
 class CORE_EXPORT NodeOrNodeList final {
   DISALLOW_NEW();
  public:

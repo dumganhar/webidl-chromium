@@ -12,8 +12,6 @@
 
 #include "third_party/blink/renderer/bindings/tests/idls/core/test_interface_implementation.h"
 #include "third_party/blink/renderer/bindings/tests/idls/core/test_object.h"
-#include "third_party/blink/renderer/core/dom/element.h"
-#include "third_party/blink/renderer/core/dom/events/event_target.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
 
 namespace blink {
@@ -75,12 +73,12 @@ void TestDictionary::setDoubleOrStringSequenceMember(const HeapVector<DoubleOrSt
   has_double_or_string_sequence_member_ = true;
 }
 
-void TestDictionary::setElementOrNullRecordMember(const HeapVector<std::pair<String, Member<Element>>>& value) {
+void TestDictionary::setElementOrNullRecordMember(const Vector<std::pair<String, Member<Element>>>& value) {
   element_or_null_record_member_ = value;
   has_element_or_null_record_member_ = true;
 }
 
-void TestDictionary::setElementOrNullSequenceMember(const HeapVector<Member<Element>>& value) {
+void TestDictionary::setElementOrNullSequenceMember(const Vector<Member<Element>>& value) {
   element_or_null_sequence_member_ = value;
   has_element_or_null_sequence_member_ = true;
 }
@@ -95,7 +93,7 @@ void TestDictionary::setGarbageCollectedRecordMember(const HeapVector<std::pair<
   has_garbage_collected_record_member_ = true;
 }
 
-void TestDictionary::setInternalDictionarySequenceMember(const HeapVector<Member<InternalDictionary>>& value) {
+void TestDictionary::setInternalDictionarySequenceMember(const Vector<Member<InternalDictionary>>& value) {
   internal_dictionary_sequence_member_ = value;
   has_internal_dictionary_sequence_member_ = true;
 }
@@ -207,12 +205,7 @@ void TestDictionary::Trace(blink::Visitor* visitor) {
   visitor->Trace(double_or_null_or_double_or_null_sequence_member_);
   visitor->Trace(double_or_string_member_);
   visitor->Trace(double_or_string_sequence_member_);
-  visitor->Trace(element_or_null_member_);
-  visitor->Trace(element_or_null_record_member_);
-  visitor->Trace(element_or_null_sequence_member_);
-  visitor->Trace(event_target_member_);
   visitor->Trace(garbage_collected_record_member_);
-  visitor->Trace(internal_dictionary_sequence_member_);
   visitor->Trace(other_double_or_string_member_);
   visitor->Trace(required_callback_function_member_);
   visitor->Trace(test_enum_or_null_or_test_enum_sequence_member_);
@@ -224,7 +217,6 @@ void TestDictionary::Trace(blink::Visitor* visitor) {
   visitor->Trace(test_interface_sequence_member_);
   visitor->Trace(test_object_sequence_member_);
   visitor->Trace(treat_non_null_obj_member_);
-  visitor->Trace(uint8_array_member_);
   visitor->Trace(union_in_record_member_);
   visitor->Trace(union_member_with_sequence_default_);
   visitor->Trace(union_or_null_record_member_);

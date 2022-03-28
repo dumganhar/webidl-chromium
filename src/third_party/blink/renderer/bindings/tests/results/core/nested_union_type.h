@@ -22,9 +22,6 @@
 namespace blink {
 
 class ByteStringOrNodeList;
-class Event;
-class Node;
-class XMLHttpRequest;
 
 class CORE_EXPORT NodeOrLongSequenceOrEventOrXMLHttpRequestOrStringOrStringByteStringOrNodeListRecord final {
   DISALLOW_NEW();

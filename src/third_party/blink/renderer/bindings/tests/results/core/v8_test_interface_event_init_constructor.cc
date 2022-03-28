@@ -73,14 +73,6 @@ static void ReadonlyStringAttributeAttributeGetter(const v8::FunctionCallbackInf
   V8SetReturnValueString(info, impl->readonlyStringAttribute(), info.GetIsolate());
 }
 
-static void IsTrustedAttributeGetter(const v8::FunctionCallbackInfo<v8::Value>& info) {
-  v8::Local<v8::Object> holder = info.Holder();
-
-  TestInterfaceEventInitConstructor* impl = V8TestInterfaceEventInitConstructor::ToImpl(holder);
-
-  V8SetReturnValueBool(info, impl->isTrusted());
-}
-
 static void Constructor(const v8::FunctionCallbackInfo<v8::Value>& info) {
   RUNTIME_CALL_TIMER_SCOPE_DISABLED_BY_DEFAULT(info.GetIsolate(), "Blink_TestInterfaceEventInitConstructor_ConstructorCallback");
 
@@ -137,15 +129,8 @@ void V8TestInterfaceEventInitConstructor::ReadonlyStringAttributeAttributeGetter
   test_interface_event_init_constructor_v8_internal::ReadonlyStringAttributeAttributeGetter(info);
 }
 
-void V8TestInterfaceEventInitConstructor::IsTrustedAttributeGetterCallback(const v8::FunctionCallbackInfo<v8::Value>& info) {
-  RUNTIME_CALL_TIMER_SCOPE_DISABLED_BY_DEFAULT(info.GetIsolate(), "Blink_TestInterfaceEventInitConstructor_isTrusted_Getter");
-
-  test_interface_event_init_constructor_v8_internal::IsTrustedAttributeGetter(info);
-}
-
 static constexpr V8DOMConfiguration::AccessorConfiguration kV8TestInterfaceEventInitConstructorAccessors[] = {
     { "readonlyStringAttribute", V8TestInterfaceEventInitConstructor::ReadonlyStringAttributeAttributeGetterCallback, nullptr, V8PrivateProperty::kNoCachedAccessor, static_cast<v8::PropertyAttribute>(v8::ReadOnly), V8DOMConfiguration::kOnPrototype, V8DOMConfiguration::kCheckHolder, V8DOMConfiguration::kHasSideEffect, V8DOMConfiguration::kAlwaysCallGetter, V8DOMConfiguration::kAllWorlds },
-    { "isTrusted", V8TestInterfaceEventInitConstructor::IsTrustedAttributeGetterCallback, nullptr, V8PrivateProperty::kNoCachedAccessor, static_cast<v8::PropertyAttribute>(v8::DontDelete | v8::ReadOnly), V8DOMConfiguration::kOnInstance, V8DOMConfiguration::kCheckHolder, V8DOMConfiguration::kHasSideEffect, V8DOMConfiguration::kAlwaysCallGetter, V8DOMConfiguration::kAllWorlds },
 };
 
 static void InstallV8TestInterfaceEventInitConstructorTemplate(

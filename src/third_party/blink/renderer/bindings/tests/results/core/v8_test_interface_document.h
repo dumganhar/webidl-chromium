@@ -14,9 +14,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/generated_code_helper.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits.h"
 #include "third_party/blink/renderer/bindings/core/v8/to_v8_for_core.h"
-#include "third_party/blink/renderer/bindings/core/v8/usv_string_or_trusted_url.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_document.h"
 #include "third_party/blink/renderer/bindings/tests/idls/core/test_interface_document.h"
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
@@ -46,9 +44,6 @@ class V8TestInterfaceDocument {
   static constexpr int kInternalFieldCount = kV8DefaultWrapperInternalFieldCount;
 
   // Callback functions
-
-  CORE_EXPORT static void LocationAttributeGetterCallback(const v8::FunctionCallbackInfo<v8::Value>&);
-  CORE_EXPORT static void LocationAttributeSetterCallback(const v8::FunctionCallbackInfo<v8::Value>&);
 
   static void InstallRuntimeEnabledFeaturesOnTemplate(
       v8::Isolate*,

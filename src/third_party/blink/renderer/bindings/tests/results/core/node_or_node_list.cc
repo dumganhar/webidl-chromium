@@ -12,7 +12,6 @@
 
 #include "base/stl_util.h"
 #include "third_party/blink/renderer/bindings/core/v8/to_v8_for_core.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_node.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_node_list.h"
 #include "third_party/blink/renderer/core/dom/name_node_list.h"
 #include "third_party/blink/renderer/core/dom/node_list.h"
@@ -62,8 +61,6 @@ NodeOrNodeList::~NodeOrNodeList() = default;
 NodeOrNodeList& NodeOrNodeList::operator=(const NodeOrNodeList&) = default;
 
 void NodeOrNodeList::Trace(blink::Visitor* visitor) {
-  visitor->Trace(node_);
-  visitor->Trace(node_list_);
 }
 
 void V8NodeOrNodeList::ToImpl(
