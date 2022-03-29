@@ -4,152 +4,192 @@
 
 #include "third_party/blink/renderer/bindings/core/v8/serialization/serialized_color_params.h"
 
+#include "build/build_config.h"
+#include "third_party/blink/renderer/platform/graphics/canvas_color_params.h"
+
 namespace blink {
 
-SerializedColorParams::SerializedColorParams()
-    : color_space_(SerializedColorSpace::kSRGB),
-      pixel_format_(SerializedPixelFormat::kRGBA8),
-      opacity_mode_(SerializedOpacityMode::kNonOpaque),
-      storage_format_(SerializedImageDataStorageFormat::kUint8Clamped) {}
+namespace {
 
-SerializedColorParams::SerializedColorParams(CanvasColorParams color_params) {
-  switch (color_params.ColorSpace()) {
-    case kSRGBCanvasColorSpace:
-      color_space_ = SerializedColorSpace::kSRGB;
-      break;
-    case kLinearRGBCanvasColorSpace:
-      color_space_ = SerializedColorSpace::kLinearRGB;
-      break;
-    case kRec2020CanvasColorSpace:
-      color_space_ = SerializedColorSpace::kRec2020;
-      break;
-    case kP3CanvasColorSpace:
-      color_space_ = SerializedColorSpace::kP3;
-      break;
+SerializedColorSpace SerializeColorSpace(PredefinedColorSpace color_space) {
+  switch (color_space) {
+    case PredefinedColorSpace::kSRGB:
+      return SerializedColorSpace::kSRGB;
+    case PredefinedColorSpace::kRec2020:
+      return SerializedColorSpace::kRec2020;
+    case PredefinedColorSpace::kP3:
+      return SerializedColorSpace::kP3;
+    case PredefinedColorSpace::kRec2100HLG:
+      return SerializedColorSpace::kRec2100HLG;
+    case PredefinedColorSpace::kRec2100PQ:
+      return SerializedColorSpace::kRec2100PQ;
+    case PredefinedColorSpace::kSRGBLinear:
+      return SerializedColorSpace::kSRGBLinear;
   }
-
-  switch (color_params.PixelFormat()) {
-    case kRGBA8CanvasPixelFormat:
-      pixel_format_ = SerializedPixelFormat::kRGBA8;
-      break;
-    case kF16CanvasPixelFormat:
-      pixel_format_ = SerializedPixelFormat::kF16;
-      break;
-  }
-
-  opacity_mode_ = SerializedOpacityMode::kNonOpaque;
-  if (color_params.GetOpacityMode() == blink::kOpaque)
-    opacity_mode_ = SerializedOpacityMode::kOpaque;
-  storage_format_ = SerializedImageDataStorageFormat::kUint8Clamped;
+  NOTREACHED();
+  return SerializedColorSpace::kSRGB;
 }
 
-SerializedColorParams::SerializedColorParams(
-    CanvasColorParams color_params,
+PredefinedColorSpace DeserializeColorSpace(
+    SerializedColorSpace serialized_color_space) {
+  switch (serialized_color_space) {
+    case SerializedColorSpace::kLegacyObsolete:
+    case SerializedColorSpace::kSRGB:
+      return PredefinedColorSpace::kSRGB;
+    case SerializedColorSpace::kRec2020:
+      return PredefinedColorSpace::kRec2020;
+    case SerializedColorSpace::kP3:
+      return PredefinedColorSpace::kP3;
+    case SerializedColorSpace::kRec2100HLG:
+      return PredefinedColorSpace::kRec2100HLG;
+    case SerializedColorSpace::kRec2100PQ:
+      return PredefinedColorSpace::kRec2100PQ;
+    case SerializedColorSpace::kSRGBLinear:
+      return PredefinedColorSpace::kSRGBLinear;
+  }
+  NOTREACHED();
+  return PredefinedColorSpace::kSRGB;
+}
+
+}  // namespace
+
+////////////////////////////////////////////////////////////////////////////////
+// SerializedImageDataSettings
+
+SerializedImageDataSettings::SerializedImageDataSettings(
+    PredefinedColorSpace color_space,
     ImageDataStorageFormat storage_format)
-    : SerializedColorParams(color_params) {
+    : color_space_(SerializeColorSpace(color_space)) {
   switch (storage_format) {
-    case kUint8ClampedArrayStorageFormat:
+    case ImageDataStorageFormat::kUint8:
       storage_format_ = SerializedImageDataStorageFormat::kUint8Clamped;
       break;
-    case kUint16ArrayStorageFormat:
+    case ImageDataStorageFormat::kUint16:
       storage_format_ = SerializedImageDataStorageFormat::kUint16;
       break;
-    case kFloat32ArrayStorageFormat:
+    case ImageDataStorageFormat::kFloat32:
       storage_format_ = SerializedImageDataStorageFormat::kFloat32;
       break;
   }
 }
 
-SerializedColorParams::SerializedColorParams(
+SerializedImageDataSettings::SerializedImageDataSettings(
+    SerializedColorSpace color_space,
+    SerializedImageDataStorageFormat storage_format)
+    : color_space_(color_space), storage_format_(storage_format) {}
+
+PredefinedColorSpace SerializedImageDataSettings::GetColorSpace() const {
+  return DeserializeColorSpace(color_space_);
+}
+
+ImageDataStorageFormat SerializedImageDataSettings::GetStorageFormat() const {
+  switch (storage_format_) {
+    case SerializedImageDataStorageFormat::kUint8Clamped:
+      return ImageDataStorageFormat::kUint8;
+    case SerializedImageDataStorageFormat::kUint16:
+      return ImageDataStorageFormat::kUint16;
+    case SerializedImageDataStorageFormat::kFloat32:
+      return ImageDataStorageFormat::kFloat32;
+  }
+  NOTREACHED();
+  return ImageDataStorageFormat::kUint8;
+}
+
+ImageDataSettings* SerializedImageDataSettings::GetImageDataSettings() const {
+  ImageDataSettings* settings = ImageDataSettings::Create();
+  settings->setColorSpace(PredefinedColorSpaceName(GetColorSpace()));
+  settings->setStorageFormat(ImageDataStorageFormatName(GetStorageFormat()));
+  return settings;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// SerializedImageBitmapSettings
+
+SerializedImageBitmapSettings::SerializedImageBitmapSettings() = default;
+
+SerializedImageBitmapSettings::SerializedImageBitmapSettings(SkImageInfo info) {
+  color_space_ = SerializeColorSpace(
+      PredefinedColorSpaceFromSkColorSpace(info.colorSpace()));
+
+  switch (info.colorType()) {
+    default:
+    case kRGBA_8888_SkColorType:
+      pixel_format_ = SerializedPixelFormat::kRGBA8;
+      break;
+    case kBGRA_8888_SkColorType:
+      pixel_format_ = SerializedPixelFormat::kBGRA8;
+      break;
+    case kRGB_888x_SkColorType:
+      pixel_format_ = SerializedPixelFormat::kRGBX8;
+      break;
+    case kRGBA_F16_SkColorType:
+      pixel_format_ = SerializedPixelFormat::kF16;
+      break;
+  }
+
+  switch (info.alphaType()) {
+    case kUnknown_SkAlphaType:
+    case kPremul_SkAlphaType:
+      opacity_mode_ = SerializedOpacityMode::kNonOpaque;
+      is_premultiplied_ = true;
+      break;
+    case kUnpremul_SkAlphaType:
+      opacity_mode_ = SerializedOpacityMode::kNonOpaque;
+      is_premultiplied_ = false;
+      break;
+    case kOpaque_SkAlphaType:
+      opacity_mode_ = SerializedOpacityMode::kOpaque;
+      is_premultiplied_ = true;
+      break;
+  }
+}
+
+SerializedImageBitmapSettings::SerializedImageBitmapSettings(
     SerializedColorSpace color_space,
     SerializedPixelFormat pixel_format,
     SerializedOpacityMode opacity_mode,
-    SerializedImageDataStorageFormat storage_format) {
-  SetSerializedColorSpace(color_space);
-  SetSerializedPixelFormat(pixel_format);
-  SetSerializedOpacityMode(opacity_mode);
-  SetSerializedImageDataStorageFormat(storage_format);
-}
+    uint32_t is_premultiplied)
+    : color_space_(color_space),
+      pixel_format_(pixel_format),
+      opacity_mode_(opacity_mode),
+      is_premultiplied_(is_premultiplied) {}
 
-CanvasColorParams SerializedColorParams::GetCanvasColorParams() const {
-  CanvasColorSpace color_space = kSRGBCanvasColorSpace;
-  switch (color_space_) {
-    case SerializedColorSpace::kLegacyObsolete:
-    case SerializedColorSpace::kSRGB:
-      color_space = kSRGBCanvasColorSpace;
+SkImageInfo SerializedImageBitmapSettings::GetSkImageInfo(
+    uint32_t width,
+    uint32_t height) const {
+  sk_sp<SkColorSpace> sk_color_space =
+      PredefinedColorSpaceToSkColorSpace(DeserializeColorSpace(color_space_));
+
+  SkColorType sk_color_type = kRGBA_8888_SkColorType;
+  switch (pixel_format_) {
+    case SerializedPixelFormat::kNative8_LegacyObsolete:
+      sk_color_type = kN32_SkColorType;
       break;
-    case SerializedColorSpace::kLinearRGB:
-      color_space = kLinearRGBCanvasColorSpace;
+    case SerializedPixelFormat::kRGBA8:
+      sk_color_type = kRGBA_8888_SkColorType;
       break;
-    case SerializedColorSpace::kRec2020:
-      color_space = kRec2020CanvasColorSpace;
+    case SerializedPixelFormat::kBGRA8:
+      sk_color_type = kBGRA_8888_SkColorType;
       break;
-    case SerializedColorSpace::kP3:
-      color_space = kP3CanvasColorSpace;
+    case SerializedPixelFormat::kRGBX8:
+      sk_color_type = kRGB_888x_SkColorType;
+      break;
+    case SerializedPixelFormat::kF16:
+      sk_color_type = kRGBA_F16_SkColorType;
       break;
   }
 
-  CanvasPixelFormat pixel_format = kRGBA8CanvasPixelFormat;
-  if (pixel_format_ == SerializedPixelFormat::kF16)
-    pixel_format = kF16CanvasPixelFormat;
-  blink::OpacityMode opacity_mode = blink::kNonOpaque;
-  if (opacity_mode_ == SerializedOpacityMode::kOpaque)
-    opacity_mode = blink::kOpaque;
-  return CanvasColorParams(color_space, pixel_format, opacity_mode);
-}
-
-CanvasColorSpace SerializedColorParams::GetColorSpace() const {
-  return GetCanvasColorParams().ColorSpace();
-}
-
-ImageDataStorageFormat SerializedColorParams::GetStorageFormat() const {
-  switch (storage_format_) {
-    case SerializedImageDataStorageFormat::kUint8Clamped:
-      return kUint8ClampedArrayStorageFormat;
-    case SerializedImageDataStorageFormat::kUint16:
-      return kUint16ArrayStorageFormat;
-    case SerializedImageDataStorageFormat::kFloat32:
-      return kFloat32ArrayStorageFormat;
+  SkAlphaType sk_alpha_type = kPremul_SkAlphaType;
+  if (opacity_mode_ == SerializedOpacityMode::kOpaque) {
+    sk_alpha_type = kOpaque_SkAlphaType;
+  } else if (is_premultiplied_) {
+    sk_alpha_type = kPremul_SkAlphaType;
+  } else {
+    sk_alpha_type = kUnpremul_SkAlphaType;
   }
-  NOTREACHED();
-  return kUint8ClampedArrayStorageFormat;
-}
 
-void SerializedColorParams::SetSerializedColorSpace(
-    SerializedColorSpace color_space) {
-  color_space_ = color_space;
-}
-
-void SerializedColorParams::SetSerializedPixelFormat(
-    SerializedPixelFormat pixel_format) {
-  pixel_format_ = pixel_format;
-}
-
-void SerializedColorParams::SetSerializedOpacityMode(
-    SerializedOpacityMode opacity_mode) {
-  opacity_mode_ = opacity_mode;
-}
-
-void SerializedColorParams::SetSerializedImageDataStorageFormat(
-    SerializedImageDataStorageFormat storage_format) {
-  storage_format_ = storage_format;
-}
-
-SerializedColorSpace SerializedColorParams::GetSerializedColorSpace() const {
-  return color_space_;
-}
-
-SerializedPixelFormat SerializedColorParams::GetSerializedPixelFormat() const {
-  return pixel_format_;
-}
-
-SerializedOpacityMode SerializedColorParams::GetSerializedOpacityMode() const {
-  return opacity_mode_;
-}
-
-SerializedImageDataStorageFormat
-SerializedColorParams::GetSerializedImageDataStorageFormat() const {
-  return storage_format_;
+  return SkImageInfo::Make(width, height, sk_color_type, sk_alpha_type,
+                           std::move(sk_color_space));
 }
 
 }  // namespace blink

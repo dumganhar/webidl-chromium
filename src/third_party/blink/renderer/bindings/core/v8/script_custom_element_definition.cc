@@ -9,11 +9,12 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_adopted_callback.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_attribute_changed_callback.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_constructor.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_disabled_state_changed_callback.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_form_associated_callback.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_form_disabled_callback.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_form_state_restore_callback.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_registry.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_custom_element_restore_value_callback.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_element.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_form_state_restore_mode.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_function.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_script_runner.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_throw_dom_exception.h"
@@ -22,12 +23,13 @@
 #include "third_party/blink/renderer/core/events/error_event.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/html/custom/custom_element.h"
+#include "third_party/blink/renderer/core/html/custom/custom_element_registry.h"
 #include "third_party/blink/renderer/core/html/html_element.h"
 #include "third_party/blink/renderer/platform/bindings/script_state.h"
 #include "third_party/blink/renderer/platform/bindings/v8_binding_macros.h"
 #include "third_party/blink/renderer/platform/bindings/v8_per_context_data.h"
 #include "third_party/blink/renderer/platform/bindings/v8_private_property.h"
-#include "third_party/blink/renderer/platform/wtf/allocator.h"
+#include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "v8/include/v8.h"
 
 namespace blink {
@@ -75,29 +77,10 @@ ScriptCustomElementDefinition* ScriptCustomElementDefinition::ForConstructor(
   return static_cast<ScriptCustomElementDefinition*>(definition);
 }
 
-ScriptCustomElementDefinition* ScriptCustomElementDefinition::Create(
-    const ScriptCustomElementDefinitionData& data,
-    const CustomElementDescriptor& descriptor,
-    CustomElementDefinition::Id id) {
-  auto* definition =
-      MakeGarbageCollected<ScriptCustomElementDefinition>(data, descriptor);
-
-  // Tag the JavaScript constructor object with its ID.
-  ScriptState* script_state = data.script_state_;
-  v8::Local<v8::Value> id_value =
-      v8::Integer::NewFromUnsigned(script_state->GetIsolate(), id);
-  auto private_id =
-      script_state->PerContextData()->GetPrivateCustomElementDefinitionId();
-  CHECK(data.constructor_->CallbackObject()
-            ->SetPrivate(script_state->GetContext(), private_id, id_value)
-            .ToChecked());
-
-  return definition;
-}
-
 ScriptCustomElementDefinition::ScriptCustomElementDefinition(
     const ScriptCustomElementDefinitionData& data,
-    const CustomElementDescriptor& descriptor)
+    const CustomElementDescriptor& descriptor,
+    CustomElementDefinition::Id id)
     : CustomElementDefinition(descriptor,
                               std::move(data.observed_attributes_),
                               data.disabled_features_,
@@ -112,10 +95,20 @@ ScriptCustomElementDefinition::ScriptCustomElementDefinition(
       attribute_changed_callback_(data.attribute_changed_callback_),
       form_associated_callback_(data.form_associated_callback_),
       form_reset_callback_(data.form_reset_callback_),
-      disabled_state_changed_callback_(data.disabled_state_changed_callback_),
-      restore_value_callback_(data.restore_value_callback_) {}
+      form_disabled_callback_(data.form_disabled_callback_),
+      form_state_restore_callback_(data.form_state_restore_callback_) {
+  // Tag the JavaScript constructor object with its ID.
+  ScriptState* script_state = data.script_state_;
+  v8::Local<v8::Value> id_value =
+      v8::Integer::NewFromUnsigned(script_state->GetIsolate(), id);
+  auto private_id =
+      script_state->PerContextData()->GetPrivateCustomElementDefinitionId();
+  CHECK(data.constructor_->CallbackObject()
+            ->SetPrivate(script_state->GetContext(), private_id, id_value)
+            .ToChecked());
+}
 
-void ScriptCustomElementDefinition::Trace(Visitor* visitor) {
+void ScriptCustomElementDefinition::Trace(Visitor* visitor) const {
   visitor->Trace(script_state_);
   visitor->Trace(constructor_);
   visitor->Trace(connected_callback_);
@@ -124,8 +117,8 @@ void ScriptCustomElementDefinition::Trace(Visitor* visitor) {
   visitor->Trace(attribute_changed_callback_);
   visitor->Trace(form_associated_callback_);
   visitor->Trace(form_reset_callback_);
-  visitor->Trace(disabled_state_changed_callback_);
-  visitor->Trace(restore_value_callback_);
+  visitor->Trace(form_disabled_callback_);
+  visitor->Trace(form_state_restore_callback_);
   CustomElementDefinition::Trace(visitor);
 }
 
@@ -146,6 +139,7 @@ HTMLElement* ScriptCustomElementDefinition::HandleCreateElementSyncException(
 HTMLElement* ScriptCustomElementDefinition::CreateAutonomousCustomElementSync(
     Document& document,
     const QualifiedName& tag_name) {
+  DCHECK(CustomElement::ShouldCreateCustomElement(tag_name)) << tag_name;
   if (!script_state_->ContextIsValid())
     return CustomElement::CreateFailedElement(document, tag_name);
   ScriptState::Scope scope(script_state_);
@@ -163,22 +157,7 @@ HTMLElement* ScriptCustomElementDefinition::CreateAutonomousCustomElementSync(
   Element* element = nullptr;
   {
     v8::TryCatch try_catch(script_state_->GetIsolate());
-
-    if (document.IsHTMLImport()) {
-      // V8HTMLElement::constructorCustom() can only refer to
-      // window.document() which is not the import document. Create
-      // elements in import documents ahead of time so they end up in
-      // the right document. This subtly violates recursive
-      // construction semantics, but only in import documents.
-      element = CreateElementForConstructor(document);
-      DCHECK(!try_catch.HasCaught());
-
-      ConstructionStackScope construction_stack_scope(*this, *element);
-      element = CallConstructor();
-    } else {
-      element = CallConstructor();
-    }
-
+    element = CallConstructor();
     if (try_catch.HasCaught()) {
       exception_state.RethrowV8Exception(try_catch.Exception());
       return HandleCreateElementSyncException(document, tag_name, isolate,
@@ -197,7 +176,7 @@ HTMLElement* ScriptCustomElementDefinition::CreateAutonomousCustomElementSync(
     element->SetTagNameForCreateElementNS(tag_name);
   DCHECK_EQ(element->GetCustomElementState(), CustomElementState::kCustom);
   AddDefaultStylesTo(*element);
-  return ToHTMLElement(element);
+  return To<HTMLElement>(element);
 }
 
 // https://html.spec.whatwg.org/C/#upgrades
@@ -212,21 +191,32 @@ bool ScriptCustomElementDefinition::RunConstructor(Element& element) {
   v8::TryCatch try_catch(isolate);
   try_catch.SetVerbose(true);
 
+  if (DisableShadow() && element.GetShadowRoot()) {
+    v8::Local<v8::Value> exception = V8ThrowDOMException::CreateOrEmpty(
+        script_state_->GetIsolate(), DOMExceptionCode::kNotSupportedError,
+        "The element already has a ShadowRoot though it is disabled by "
+        "disabledFeatures static field.");
+    if (!exception.IsEmpty())
+      V8ScriptRunner::ReportException(isolate, exception);
+    return false;
+  }
+
+  // 8.1.new: set custom element state to kPreCustomized.
+  element.SetCustomElementState(CustomElementState::kPreCustomized);
+
   Element* result = CallConstructor();
 
   // To report exception thrown from callConstructor()
   if (try_catch.HasCaught())
     return false;
 
-  // To report InvalidStateError Exception, when the constructor returns some
-  // different object
+  // Report a TypeError Exception if the constructor returns a different object.
   if (result != &element) {
     const String& message =
         "custom element constructors must call super() first and must "
         "not return a different object";
-    v8::Local<v8::Value> exception = V8ThrowDOMException::CreateOrEmpty(
-        script_state_->GetIsolate(), DOMExceptionCode::kInvalidStateError,
-        message);
+    v8::Local<v8::Value> exception =
+        V8ThrowException::CreateTypeError(script_state_->GetIsolate(), message);
     if (!exception.IsEmpty())
       V8ScriptRunner::ReportException(isolate, exception);
     return false;
@@ -251,7 +241,7 @@ v8::Local<v8::Object> ScriptCustomElementDefinition::Constructor() const {
 
 // CustomElementDefinition
 ScriptValue ScriptCustomElementDefinition::GetConstructorForScript() {
-  return ScriptValue(script_state_, Constructor());
+  return ScriptValue(script_state_->GetIsolate(), Constructor());
 }
 
 bool ScriptCustomElementDefinition::HasConnectedCallback() const {
@@ -274,12 +264,12 @@ bool ScriptCustomElementDefinition::HasFormResetCallback() const {
   return form_reset_callback_;
 }
 
-bool ScriptCustomElementDefinition::HasDisabledStateChangedCallback() const {
-  return disabled_state_changed_callback_;
+bool ScriptCustomElementDefinition::HasFormDisabledCallback() const {
+  return form_disabled_callback_;
 }
 
-bool ScriptCustomElementDefinition::HasRestoreValueCallback() const {
-  return restore_value_callback_;
+bool ScriptCustomElementDefinition::HasFormStateRestoreCallback() const {
+  return form_state_restore_callback_;
 }
 
 void ScriptCustomElementDefinition::RunConnectedCallback(Element& element) {
@@ -331,22 +321,21 @@ void ScriptCustomElementDefinition::RunFormResetCallback(Element& element) {
   form_reset_callback_->InvokeAndReportException(&element);
 }
 
-void ScriptCustomElementDefinition::RunDisabledStateChangedCallback(
-    Element& element,
-    bool is_disabled) {
-  if (!disabled_state_changed_callback_)
+void ScriptCustomElementDefinition::RunFormDisabledCallback(Element& element,
+                                                            bool is_disabled) {
+  if (!form_disabled_callback_)
     return;
-  disabled_state_changed_callback_->InvokeAndReportException(&element,
-                                                             is_disabled);
+  form_disabled_callback_->InvokeAndReportException(&element, is_disabled);
 }
 
-void ScriptCustomElementDefinition::RunRestoreValueCallback(
+void ScriptCustomElementDefinition::RunFormStateRestoreCallback(
     Element& element,
-    const FileOrUSVString& value,
+    const V8ControlValue* value,
     const String& mode) {
-  if (!restore_value_callback_)
+  if (!form_state_restore_callback_)
     return;
-  restore_value_callback_->InvokeAndReportException(&element, value, mode);
+  form_state_restore_callback_->InvokeAndReportException(
+      &element, value, V8FormStateRestoreMode::Create(mode).value());
 }
 
 }  // namespace blink

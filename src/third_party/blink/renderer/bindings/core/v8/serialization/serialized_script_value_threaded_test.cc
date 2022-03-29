@@ -7,13 +7,15 @@
 #include "base/synchronization/waitable_event.h"
 #include "build/build_config.h"
 #include "third_party/blink/renderer/bindings/core/v8/serialization/unpacked_serialized_script_value.h"
+#include "third_party/blink/renderer/bindings/core/v8/to_v8_traits.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
 #include "third_party/blink/renderer/bindings/core/v8/worker_or_worklet_script_controller.h"
-#include "third_party/blink/renderer/core/dom/document.h"
+#include "third_party/blink/renderer/core/frame/local_dom_window.h"
 #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer.h"
 #include "third_party/blink/renderer/core/workers/worker_thread_test_helper.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/bindings/to_v8.h"
+#include "third_party/blink/renderer/platform/heap/thread_state.h"
 
 namespace blink {
 
@@ -26,11 +28,8 @@ TEST(SerializedScriptValueThreadedTest,
   // Start a worker.
   WorkerReportingProxy proxy;
   WorkerThreadForTest worker_thread(proxy);
-  ParentExecutionContextTaskRunners* parent_execution_context_task_runners =
-      ParentExecutionContextTaskRunners::Create(&scope.GetDocument());
-  worker_thread.StartWithSourceCode(scope.GetDocument().GetSecurityOrigin(),
-                                    "/* no worker script */",
-                                    parent_execution_context_task_runners);
+  worker_thread.StartWithSourceCode(scope.GetWindow().GetSecurityOrigin(),
+                                    "/* no worker script */");
 
   // Create a serialized script value that contains transferred array buffer
   // contents.
@@ -42,16 +41,20 @@ TEST(SerializedScriptValueThreadedTest,
   scoped_refptr<SerializedScriptValue> serialized =
       SerializedScriptValue::Serialize(
           scope.GetIsolate(),
-          ToV8(array_buffer, scope.GetContext()->Global(), scope.GetIsolate()),
+          ToV8Traits<DOMArrayBuffer>::ToV8(scope.GetScriptState(), array_buffer)
+              .ToLocalChecked(),
           options, ASSERT_NO_EXCEPTION);
   EXPECT_TRUE(serialized);
-  EXPECT_TRUE(array_buffer->IsNeutered());
+  EXPECT_TRUE(array_buffer->IsDetached());
 
   // Deserialize the serialized value on the worker.
   // Intentionally keep a reference on this thread while this occurs.
-  worker_thread.GetWorkerBackingThread().BackingThread().PostTask(
-      FROM_HERE,
-      CrossThreadBind(
+  scoped_refptr<base::SingleThreadTaskRunner> task_runner =
+      worker_thread.GetWorkerBackingThread().BackingThread().GetTaskRunner();
+
+  PostCrossThreadTask(
+      *task_runner, FROM_HERE,
+      CrossThreadBindOnce(
           [](WorkerThread* worker_thread,
              scoped_refptr<SerializedScriptValue> serialized) {
             WorkerOrWorkletScriptController* script =
@@ -63,16 +66,16 @@ TEST(SerializedScriptValueThreadedTest,
 
             // Make sure this thread's references in the Oilpan heap are dropped
             // before the main thread continues.
-            ThreadState::Current()->CollectAllGarbage();
+            ThreadState::Current()->CollectAllGarbageForTesting();
           },
           CrossThreadUnretained(&worker_thread), serialized));
 
   // Wait for a subsequent task on the worker to finish, to ensure that the
   // references held by the task are dropped.
   base::WaitableEvent done;
-  worker_thread.GetWorkerBackingThread().BackingThread().PostTask(
-      FROM_HERE, CrossThreadBind(&base::WaitableEvent::Signal,
-                                 CrossThreadUnretained(&done)));
+  PostCrossThreadTask(*task_runner, FROM_HERE,
+                      CrossThreadBindOnce(&base::WaitableEvent::Signal,
+                                          CrossThreadUnretained(&done)));
   done.Wait();
 
   // Now destroy the value on the main thread.

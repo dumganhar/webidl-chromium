@@ -6,10 +6,10 @@
 #define THIRD_PARTY_BLINK_RENDERER_BINDINGS_CORE_V8_REFERRER_SCRIPT_INFO_H_
 
 #include "services/network/public/mojom/fetch_api.mojom-blink.h"
-#include "services/network/public/mojom/referrer_policy.mojom-shared.h"
+#include "services/network/public/mojom/referrer_policy.mojom-blink.h"
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/platform/loader/fetch/script_fetch_options.h"
-#include "third_party/blink/renderer/platform/wtf/allocator.h"
+#include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "third_party/blink/renderer/platform/wtf/text/text_position.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "v8/include/v8.h"
@@ -25,7 +25,7 @@ class CORE_EXPORT ReferrerScriptInfo {
  public:
   ReferrerScriptInfo() {}
   ReferrerScriptInfo(const KURL& base_url,
-                     network::mojom::FetchCredentialsMode credentials_mode,
+                     network::mojom::CredentialsMode credentials_mode,
                      const String& nonce,
                      ParserDisposition parser_state,
                      network::mojom::ReferrerPolicy referrer_policy)
@@ -43,11 +43,14 @@ class CORE_EXPORT ReferrerScriptInfo {
 
   static ReferrerScriptInfo FromV8HostDefinedOptions(
       v8::Local<v8::Context>,
-      v8::Local<v8::PrimitiveArray>);
-  v8::Local<v8::PrimitiveArray> ToV8HostDefinedOptions(v8::Isolate*) const;
+      v8::Local<v8::Data>,
+      const KURL& script_origin_resource_name);
+  v8::Local<v8::Data> ToV8HostDefinedOptions(
+      v8::Isolate*,
+      const KURL& script_origin_resource_name) const;
 
   const KURL& BaseURL() const { return base_url_; }
-  network::mojom::FetchCredentialsMode CredentialsMode() const {
+  network::mojom::CredentialsMode CredentialsMode() const {
     return credentials_mode_;
   }
   const String& Nonce() const { return nonce_; }
@@ -56,27 +59,18 @@ class CORE_EXPORT ReferrerScriptInfo {
     return referrer_policy_;
   }
 
-  bool IsDefaultValue() const {
-    return base_url_.IsNull() &&
-           credentials_mode_ ==
-               network::mojom::FetchCredentialsMode::kSameOrigin &&
-           nonce_.IsEmpty() && parser_state_ == kNotParserInserted;
-  }
+  bool IsDefaultValue(const KURL& script_origin_resource_name) const;
 
  private:
   // Spec: "referencing script's base URL"
   // https://html.spec.whatwg.org/C/#concept-script-base-url
-  //
-  // If base_url_.IsNull(), refer to ScriptOrigin::ResourceName() instead.
-  // Note: This improves the chance of getting into the fast path in
-  //       ToV8HostDefinedOptions().
   const KURL base_url_;
 
   // Spec: "referencing script's credentials mode"
   // The default value is "same-origin" per:
   // https://html.spec.whatwg.org/C/#default-classic-script-fetch-options
-  const network::mojom::FetchCredentialsMode credentials_mode_ =
-      network::mojom::FetchCredentialsMode::kSameOrigin;
+  const network::mojom::CredentialsMode credentials_mode_ =
+      network::mojom::CredentialsMode::kSameOrigin;
 
   // Spec: "referencing script's cryptographic nonce"
   const String nonce_;

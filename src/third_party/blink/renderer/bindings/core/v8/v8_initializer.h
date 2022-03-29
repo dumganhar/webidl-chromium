@@ -27,7 +27,7 @@
 #define THIRD_PARTY_BLINK_RENDERER_BINDINGS_CORE_V8_V8_INITIALIZER_H_
 
 #include "third_party/blink/renderer/core/core_export.h"
-#include "third_party/blink/renderer/platform/wtf/allocator.h"
+#include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "v8/include/v8.h"
 
 namespace blink {
@@ -59,7 +59,8 @@ class CORE_EXPORT V8Initializer {
   static void SetNearV8HeapLimitOnMainThreadCallback(
       NearV8HeapLimitCallback callback);
 
-  static void InitializeMainThread(const intptr_t* reference_table);
+  static void InitializeMainThread(const intptr_t* reference_table,
+                                   const std::string js_command_line_flag);
   static void InitializeWorker(v8::Isolate*);
 
   static void ReportRejectedPromisesOnMainThread();
@@ -67,6 +68,9 @@ class CORE_EXPORT V8Initializer {
                                          v8::Local<v8::Value>);
   static void MessageHandlerInWorker(v8::Local<v8::Message>,
                                      v8::Local<v8::Value>);
+  static bool WasmCodeGenerationCheckCallbackInMainThread(
+      v8::Local<v8::Context> context,
+      v8::Local<v8::String> source);
 };
 
 }  // namespace blink

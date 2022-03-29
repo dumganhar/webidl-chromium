@@ -44,6 +44,12 @@ def add_bindings_scripts_dir_to_sys_path():
         sys.path.insert(0, path_to_bindings_scripts)
 
 
+def add_build_scripts_dir_to_sys_path():
+    path_to_build_scripts = get_build_scripts_dir()
+    if path_to_build_scripts not in sys.path:
+        sys.path.insert(0, path_to_build_scripts)
+
+
 def add_blinkpy_thirdparty_dir_to_sys_path():
     path = get_blinkpy_thirdparty_dir()
     if path not in sys.path:
@@ -61,7 +67,9 @@ def get_bindings_scripts_dir():
 
 
 def get_blink_dir():
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+    return os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
 
 def get_chromium_src_dir():
@@ -73,7 +81,8 @@ def get_depot_tools_dir():
 
 
 def get_source_dir():
-    return os.path.join(get_chromium_src_dir(), 'third_party', 'blink', 'renderer')
+    return os.path.join(get_chromium_src_dir(), 'third_party', 'blink',
+                        'renderer')
 
 
 def get_typ_dir():
@@ -86,7 +95,17 @@ def get_blinkpy_thirdparty_dir():
 
 
 def get_blink_tools_dir():
-    return os.path.join(get_chromium_src_dir(), 'third_party', 'blink', 'tools')
+    return os.path.join(get_chromium_src_dir(), 'third_party', 'blink',
+                        'tools')
+
+
+def get_wpt_tools_wpt_dir():
+    return os.path.join(get_chromium_src_dir(), 'third_party', 'wpt_tools',
+                        'wpt')
+
+
+def get_build_scripts_dir():
+    return os.path.join(get_source_dir(), 'build', 'scripts')
 
 
 def add_blink_tools_dir_to_sys_path():
@@ -96,8 +115,9 @@ def add_blink_tools_dir_to_sys_path():
 
 
 def _does_blink_web_tests_exist():
-    return os.path.exists(os.path.join(get_chromium_src_dir(), 'third_party',
-                                       'blink', 'web_tests'))
+    return os.path.exists(
+        os.path.join(get_chromium_src_dir(), 'third_party', 'blink',
+                     'web_tests'))
 
 
 TESTS_IN_BLINK = _does_blink_web_tests_exist()
@@ -106,8 +126,8 @@ TESTS_IN_BLINK = _does_blink_web_tests_exist()
 RELATIVE_WEB_TESTS = 'third_party/blink/web_tests/'
 WEB_TESTS_LAST_COMPONENT = 'web_tests'
 
-class PathFinder(object):
 
+class PathFinder(object):
     def __init__(self, filesystem, sys_path=None, env_path=None):
         self._filesystem = filesystem
         self._dirsep = filesystem.sep
@@ -116,13 +136,19 @@ class PathFinder(object):
 
     @memoized
     def chromium_base(self):
-        return self._filesystem.dirname(self._filesystem.dirname(self._blink_base()))
+        return self._filesystem.dirname(
+            self._filesystem.dirname(self._blink_base()))
 
     def web_tests_dir(self):
-        return self.path_from_chromium_base('third_party', 'blink', 'web_tests')
+        return self.path_from_chromium_base('third_party', 'blink',
+                                            'web_tests')
 
     def perf_tests_dir(self):
-        return self.path_from_chromium_base('third_party', 'blink', 'perf_tests')
+        return self.path_from_chromium_base('third_party', 'blink',
+                                            'perf_tests')
+
+    def webdriver_prefix(self):
+        return self._filesystem.join('external', 'wpt', 'webdriver', '')
 
     @memoized
     def _blink_base(self):
@@ -136,17 +162,33 @@ class PathFinder(object):
         return self._filesystem.join(self.chromium_base(), *comps)
 
     def _blink_source_dir(self):
-        return self._filesystem.join(
-            self.chromium_base(), 'third_party', 'blink', 'renderer')
+        return self._filesystem.join(self.chromium_base(), 'third_party',
+                                     'blink', 'renderer')
 
     def path_from_blink_source(self, *comps):
         return self._filesystem.join(self._blink_source_dir(), *comps)
 
     def path_from_blink_tools(self, *comps):
-        return self._filesystem.join(self._filesystem.join(self.chromium_base(), 'third_party', 'blink', 'tools'), *comps)
+        return self._filesystem.join(
+            self._filesystem.join(self.chromium_base(), 'third_party', 'blink',
+                                  'tools'), *comps)
 
     def path_from_web_tests(self, *comps):
         return self._filesystem.join(self.web_tests_dir(), *comps)
+
+    def strip_web_tests_path(self, wpt_test_abs_path):
+        web_tests_path = self.path_from_web_tests('')
+        if wpt_test_abs_path.startswith(web_tests_path):
+            return wpt_test_abs_path[len(web_tests_path):]
+        return wpt_test_abs_path
+
+    def strip_webdriver_tests_path(self, wpt_webdriver_test_path):
+        if self.is_webdriver_test_path(wpt_webdriver_test_path):
+            return wpt_webdriver_test_path[len(self.webdriver_prefix()):]
+        return wpt_webdriver_test_path
+
+    def is_webdriver_test_path(self, test_path):
+        return test_path.startswith(self.webdriver_prefix())
 
     @memoized
     def depot_tools_base(self):
@@ -155,7 +197,8 @@ class PathFinder(object):
         Expects depot_tools to be //third_party/depot_tools.
         src.git's DEPS defines depot_tools to be there.
         """
-        depot_tools = self.path_from_chromium_base('third_party', 'depot_tools')
+        depot_tools = self.path_from_chromium_base('third_party',
+                                                   'depot_tools')
         return depot_tools if self._filesystem.isdir(depot_tools) else None
 
     def path_from_depot_tools_base(self, *comps):

@@ -10,8 +10,8 @@
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+#include "third_party/blink/renderer/core/frame/local_frame.h"
 #include "third_party/blink/renderer/core/page/page_popup_controller.h"
-#include "third_party/blink/renderer/core/page/page_popup_supplement.h"
 #include "third_party/blink/renderer/platform/instrumentation/tracing/trace_event.h"
 
 namespace blink {
@@ -23,8 +23,8 @@ void PagePopupControllerAttributeGetter(
   v8::Local<v8::Object> holder = info.Holder();
   DOMWindow* impl = V8Window::ToImpl(holder);
   PagePopupController* cpp_value = nullptr;
-  if (LocalFrame* frame = ToLocalDOMWindow(impl)->GetFrame())
-    cpp_value = PagePopupSupplement::From(*frame).GetPagePopupController();
+  if (LocalFrame* frame = To<LocalDOMWindow>(impl)->GetFrame())
+    cpp_value = PagePopupController::From(*frame->GetPage());
   V8SetReturnValue(info, ToV8(cpp_value, holder, info.GetIsolate()));
 }
 
@@ -39,8 +39,8 @@ void PagePopupControllerAttributeGetterCallback(
 void V8PagePopupControllerBinding::InstallPagePopupController(
     v8::Local<v8::Context> context,
     v8::Local<v8::Object> window_wrapper) {
-  Document* document = DynamicTo<Document>(
-      ToExecutionContext(window_wrapper->CreationContext()));
+  Document* document =
+      ToLocalDOMWindow(window_wrapper->GetCreationContextChecked())->document();
   if (!document || !ContextFeatures::PagePopupEnabled(document))
     return;
 

@@ -5,11 +5,13 @@
 #include "third_party/blink/renderer/bindings/core/v8/rejected_promises.h"
 
 #include <memory>
+#include <utility>
 
 #include "base/memory/ptr_util.h"
 #include "third_party/blink/public/platform/platform.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_promise_rejection_event_init.h"
 #include "third_party/blink/renderer/core/dom/events/event_target.h"
 #include "third_party/blink/renderer/core/events/promise_rejection_event.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
@@ -20,6 +22,7 @@
 #include "third_party/blink/renderer/platform/scheduler/public/thread.h"
 #include "third_party/blink/renderer/platform/scheduler/public/thread_scheduler.h"
 #include "third_party/blink/renderer/platform/wtf/functional.h"
+#include "third_party/blink/renderer/platform/wtf/hash_map.h"
 
 namespace blink {
 
@@ -27,18 +30,6 @@ static const unsigned kMaxReportedHandlersPendingResolution = 1000;
 
 class RejectedPromises::Message final {
  public:
-  static std::unique_ptr<Message> Create(
-      ScriptState* script_state,
-      v8::Local<v8::Promise> promise,
-      v8::Local<v8::Value> exception,
-      const String& error_message,
-      std::unique_ptr<SourceLocation> location,
-      SanitizeScriptErrors sanitize_script_errors) {
-    return base::WrapUnique(new Message(script_state, promise, exception,
-                                        error_message, std::move(location),
-                                        sanitize_script_errors));
-  }
-
   Message(ScriptState* script_state,
           v8::Local<v8::Promise> promise,
           v8::Local<v8::Value> exception,
@@ -57,10 +48,7 @@ class RejectedPromises::Message final {
 
   bool IsCollected() { return collected_ || !script_state_->ContextIsValid(); }
 
-  bool HasPromise(v8::Local<v8::Value> promise) {
-    ScriptState::Scope scope(script_state_);
-    return promise == promise_.NewLocal(script_state_->GetIsolate());
-  }
+  bool HasPromise(v8::Local<v8::Value> promise) { return promise_ == promise; }
 
   void Report() {
     if (!script_state_->ContextIsValid())
@@ -86,7 +74,7 @@ class RejectedPromises::Message final {
         sanitize_script_errors_ == SanitizeScriptErrors::kDoNotSanitize) {
       PromiseRejectionEventInit* init = PromiseRejectionEventInit::Create();
       init->setPromise(ScriptPromise(script_state_, value));
-      init->setReason(ScriptValue(script_state_, reason));
+      init->setReason(ScriptValue(script_state_->GetIsolate(), reason));
       init->setCancelable(true);
       PromiseRejectionEvent* event = PromiseRejectionEvent::Create(
           script_state_, event_type_names::kUnhandledrejection, init);
@@ -109,6 +97,11 @@ class RejectedPromises::Message final {
   }
 
   void Revoke() {
+    if (!script_state_->ContextIsValid()) {
+      // If the context is not valid, the frame is removed for example, then do
+      // nothing.
+      return;
+    }
     ExecutionContext* execution_context = ExecutionContext::From(script_state_);
     if (!execution_context)
       return;
@@ -126,7 +119,7 @@ class RejectedPromises::Message final {
         sanitize_script_errors_ == SanitizeScriptErrors::kDoNotSanitize) {
       PromiseRejectionEventInit* init = PromiseRejectionEventInit::Create();
       init->setPromise(ScriptPromise(script_state_, value));
-      init->setReason(ScriptValue(script_state_, reason));
+      init->setReason(ScriptValue(script_state_->GetIsolate(), reason));
       PromiseRejectionEvent* event = PromiseRejectionEvent::Create(
           script_state_, event_type_names::kRejectionhandled, init);
       target->DispatchEvent(*event);
@@ -198,7 +191,7 @@ void RejectedPromises::RejectedWithNoHandler(
     const String& error_message,
     std::unique_ptr<SourceLocation> location,
     SanitizeScriptErrors sanitize_script_errors) {
-  queue_.push_back(Message::Create(
+  queue_.push_back(std::make_unique<Message>(
       script_state, data.GetPromise(), data.GetValue(), error_message,
       std::move(location), sanitize_script_errors));
 }
@@ -218,11 +211,13 @@ void RejectedPromises::HandlerAdded(v8::PromiseRejectMessage data) {
     std::unique_ptr<Message>& message = reported_as_errors_.at(i);
     if (!message->IsCollected() && message->HasPromise(data.GetPromise())) {
       message->MakePromiseStrong();
-      message->GetContext()
-          ->GetTaskRunner(TaskType::kDOMManipulation)
+      // Since we move out of `message` below, we need to pull `context` out in
+      // a separate statement.
+      ExecutionContext* context = message->GetContext();
+      context->GetTaskRunner(TaskType::kDOMManipulation)
           ->PostTask(FROM_HERE, WTF::Bind(&RejectedPromises::RevokeNow,
                                           scoped_refptr<RejectedPromises>(this),
-                                          WTF::Passed(std::move(message))));
+                                          std::move(message)));
       reported_as_errors_.EraseAt(i);
       return;
     }
@@ -241,16 +236,18 @@ void RejectedPromises::ProcessQueue() {
   if (queue_.IsEmpty())
     return;
 
-  std::map<ExecutionContext*, MessageQueue> queues;
-  for (auto& message : queue_)
-    queues[message->GetContext()].push_back(std::move(message));
+  HeapHashMap<Member<ExecutionContext>, MessageQueue> queues;
+  for (auto& message : queue_) {
+    auto result = queues.insert(message->GetContext(), MessageQueue());
+    result.stored_value->value.push_back(std::move(message));
+  }
   queue_.clear();
 
   for (auto& kv : queues) {
-    kv.first->GetTaskRunner(blink::TaskType::kDOMManipulation)
+    kv.key->GetTaskRunner(blink::TaskType::kDOMManipulation)
         ->PostTask(FROM_HERE, WTF::Bind(&RejectedPromises::ProcessQueueNow,
                                         scoped_refptr<RejectedPromises>(this),
-                                        WTF::Passed(std::move(kv.second))));
+                                        std::move(kv.value)));
   }
 }
 

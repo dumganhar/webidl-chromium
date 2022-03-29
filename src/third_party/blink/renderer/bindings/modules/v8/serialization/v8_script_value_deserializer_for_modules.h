@@ -10,9 +10,14 @@
 
 namespace blink {
 
+class AudioData;
 class CryptoKey;
-class Landmark;
-class Point2D;
+class EncodedAudioChunk;
+class EncodedVideoChunk;
+class FileSystemHandle;
+class RTCEncodedAudioFrame;
+class RTCEncodedVideoFrame;
+class VideoFrame;
 
 // Extends V8ScriptValueSerializer with support for modules/ types.
 class MODULES_EXPORT V8ScriptValueDeserializerForModules final
@@ -44,8 +49,13 @@ class MODULES_EXPORT V8ScriptValueDeserializerForModules final
     return true;
   }
   CryptoKey* ReadCryptoKey();
-  bool ReadLandmark(Landmark* landmark);
-  bool ReadPoint2D(Point2D* point);
+  FileSystemHandle* ReadFileSystemHandle(SerializationTag tag);
+  RTCEncodedAudioFrame* ReadRTCEncodedAudioFrame();
+  RTCEncodedVideoFrame* ReadRTCEncodedVideoFrame();
+  AudioData* ReadAudioData();
+  VideoFrame* ReadVideoFrame();
+  EncodedAudioChunk* ReadEncodedAudioChunk();
+  EncodedVideoChunk* ReadEncodedVideoChunk();
 };
 
 }  // namespace blink
